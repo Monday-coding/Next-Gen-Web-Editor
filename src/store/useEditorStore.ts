@@ -26,6 +26,9 @@ interface EditorState {
   createDocument: () => void
   updateDocument: (content: string) => void
   saveDocument: () => void
+  deleteDocument: (id: string) => void
+  renameDocument: (id: string, newTitle: string) => void
+  selectDocument: (id: string) => void
   undo: () => void
   redo: () => void
 }
@@ -34,6 +37,7 @@ interface EditorState {
 export const useEditorStore = create<EditorState>((set, get) => ({
   // 1. 初始狀態
   currentDocument: null,
+  documents: [],
   hasUnsavedChanges: false,
   history: [],
   currentIndex: -1,
@@ -48,12 +52,51 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       updatedAt: new Date(),
     }
 
-    set({
+    set((state) => ({
+      documents: [...state.documents, newDocument],
       currentDocument: newDocument,
       hasUnsavedChanges: false,
       history: [''],
       currentIndex: 0,
+    }))
+  },
+
+  // 2.5. 刪除文檔
+  deleteDocument: (id: string) => {
+    set((state) => {
+      const newDocuments = state.documents.filter(doc => doc.id !== id)
+      const newCurrent = state.currentDocument?.id === id
+        ? newDocuments[0] || null
+        : state.currentDocument
+
+      return {
+        documents: newDocuments,
+        currentDocument: newCurrent,
+        hasUnsavedChanges: false,
+      }
     })
+  },
+
+  // 2.6. 重命名文檔
+  renameDocument: (id: string, newTitle: string) => {
+    set((state) => ({
+      documents: state.documents.map(doc =>
+        doc.id === id
+          ? { ...doc, title: newTitle, updatedAt: new Date() }
+          : doc
+      ),
+      currentDocument: state.currentDocument?.id === id
+        ? { ...state.currentDocument, title: newTitle, updatedAt: new Date() }
+        : state.currentDocument,
+    }))
+  },
+
+  // 2.7. 選擇文檔
+  selectDocument: (id: string) => {
+    set((state) => ({
+      currentDocument: state.documents.find(doc => doc.id === id) || null,
+      hasUnsavedChanges: false,
+    }))
   },
 
   // 3. 更新文檔內容
